@@ -1,0 +1,4 @@
+BUY if RSA is < 30 - Make it configurable
+SELL if RSA is > 70 - Make it configurable
+RSA Watch Period - 14 days as standard - Make it configurable
+MA20 - last day close price < MA20 - don't buy today. last day > MA20, bu today
