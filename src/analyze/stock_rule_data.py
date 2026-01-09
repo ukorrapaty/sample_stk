@@ -283,8 +283,8 @@ def buy_intra_day_decision(stk, trade_date, rsi_ma_df_data, stk_data_for_date, s
     #intra_day_raise_threshold = open_prc + (open_prc * INTRADAY_RAISE_PCT)/100
     #if ((price < intra_day_drop_threshold) or (price > intra_day_raise_threshold))  :
         #intra_day_buy=True 
-    if not intra_day_buy:
-        intra_day_buy = decide_pattern_rvi_indicators(stk_data_for_date, stk, trade_date, price_time)
+  #  if not intra_day_buy:
+  #      intra_day_buy = decide_pattern_rvi_indicators(stk_data_for_date, stk, trade_date, price_time)
     
     return intra_day_buy, volatility, open_prc, close_prc
 

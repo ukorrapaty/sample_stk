@@ -190,8 +190,9 @@ def trade_stock_for_date(nyse,df_stock, trade_date, invested_value, rsi_ma_df):
             if not bought_flag:
                 #RSI and MA20 indicator inform as Buy, decide when to buy using the trend line. 
                 trend_flag = rd.trend_line(df_stock_date, current_price, current_time)
-                rvi_pattern_decision = rd.decide_pattern_rvi_indicators(df_stock_date,symbol, trade_date, current_time)
-                if rvi_pattern_decision == 1 or trend_flag: #Pattern says Buy or Trend line is postive
+                #rvi_pattern_decision = rd.decide_pattern_rvi_indicators(df_stock_date,symbol, trade_date, current_time)
+                #if rvi_pattern_decision == 1 or trend_flag: #Pattern says Buy or Trend line is postive
+                if trend_flag:
                     shares, bought_price, bought_time, bought_flag = get_buy_sell_details(invested_value, current_price, current_time)
 
         portfolio_value = shares * current_price
@@ -204,8 +205,9 @@ def trade_stock_for_date(nyse,df_stock, trade_date, invested_value, rsi_ma_df):
             #rvi_indicator = rd.calculate_rvi_indicator(df_stock_date, current_time)
             #if portfolio_value <= lower_threshold or portfolio_value >= upper_threshold:
             #if not price_trend:
-            rvi_pattern_decision = rd.decide_pattern_rvi_indicators(df_stock_date,symbol, trade_date, current_time)
-            if not rvi_pattern_decision and (portfolio_value <= lower_threshold or portfolio_value >= upper_threshold):
+            #rvi_pattern_decision = rd.decide_pattern_rvi_indicators(df_stock_date,symbol, trade_date, current_time)
+            #if not rvi_pattern_decision and (portfolio_value <= lower_threshold or portfolio_value >= upper_threshold):
+            if (portfolio_value <= lower_threshold or portfolio_value >= upper_threshold):
                 shares, sold_price, sold_time, sold_flag = get_buy_sell_details(portfolio_value, current_price, current_time)
                 wait_time = datetime.strptime(sold_time,"%Y-%m-%d %H:%M:%S") - datetime.strptime(bought_time,"%Y-%m-%d %H:%M:%S")
                 #wait_time_in_mins = wait_time.total_seconds() / 60
@@ -220,7 +222,7 @@ def trade_stock_for_date(nyse,df_stock, trade_date, invested_value, rsi_ma_df):
                 #if not txn_data or txn_data.empty:
                 #    print ("Breakpoint here")
                 if txn:
-                    txn_data.append(txn)
+                    #txn_data.append(txn)
                     break #Break - Doing transaction only one for the stock for the day. 
                 #bought_flag=False
                 #sold_flag = False
@@ -233,6 +235,7 @@ def trade_stock_for_date(nyse,df_stock, trade_date, invested_value, rsi_ma_df):
         shares, sold_price, sold_time, sold_flag = get_buy_sell_details(shares*last_row["Price"], last_row["Price"], last_row["Datetime"])
         sold_flag = True
 
+    
     if bought_flag:
          txn = stock_txn_for_date (symbol, name, trade_date, bought_price, bought_time, sold_price, sold_time, invested_value, sold_price*shares, volatility, open_prc, close_prc)
     else:   
