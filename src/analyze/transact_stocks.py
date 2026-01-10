@@ -23,7 +23,7 @@ import reports as rpt
 # -------------------------
 StocksFile = r"C:/Users/ukorr/OneDrive/Documents/Projects/work/stockmarket/TrackStocks/src/input/stocks.xlsx"
 #StocksFile = r"C:/Users/ukorr/OneDrive/Documents/Projects/work/stockmarket/TrackStocks/src/input/stocks_s_p.xlsx"
-NumberOfDays = 60
+NumberOfDays = 60 #8 #60
 DailyInitialInvestment = 50000.0  # $10000
 OutputDir = r"C:/Users/ukorr/OneDrive/Documents/Projects/work/stockmarket/TrackStocks/DailyInvestReport"
 

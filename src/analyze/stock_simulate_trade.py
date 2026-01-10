@@ -6,6 +6,8 @@ from tqdm import tqdm
 from datetime import datetime, timedelta, timezone
 import time
 import numpy as np
+import threading
+import concurrent.futures
 import pandas_market_calendars as mcal
 import stock_rule_data as rd
 import buy_and_sell_patterns as bsp
@@ -175,6 +177,8 @@ def trade_stock_for_date(nyse,df_stock, trade_date, invested_value, rsi_ma_df):
         bought_flag = True
 
     volatility = 0
+    alredy_added_for_day=False
+    only_once=True
     for idx, row in df_stock_date.iterrows():
         current_price = float(row["Price"])
         current_time = row["Datetime"]
@@ -222,10 +226,12 @@ def trade_stock_for_date(nyse,df_stock, trade_date, invested_value, rsi_ma_df):
                 #if not txn_data or txn_data.empty:
                 #    print ("Breakpoint here")
                 if txn:
-                    #txn_data.append(txn)
-                    break #Break - Doing transaction only one for the stock for the day. 
-                #bought_flag=False
-                #sold_flag = False
+                    txn_data.append(txn)
+                    bought_flag=False
+                    sold_flag = False
+                    txn=None
+                    alredy_added_for_day=True
+                    if only_once: break #Break - Doing transaction once only for the stock for the day. Multiple times is giving -ve gain.
 
 
             
@@ -234,14 +240,20 @@ def trade_stock_for_date(nyse,df_stock, trade_date, invested_value, rsi_ma_df):
         last_row = df_stock_date.iloc[-1]
         shares, sold_price, sold_time, sold_flag = get_buy_sell_details(shares*last_row["Price"], last_row["Price"], last_row["Datetime"])
         sold_flag = True
-
-    
-    if bought_flag:
-         txn = stock_txn_for_date (symbol, name, trade_date, bought_price, bought_time, sold_price, sold_time, invested_value, sold_price*shares, volatility, open_prc, close_prc)
-    else:   
-         txn = stock_txn_for_date (symbol, name, trade_date, frst_row["Price"], frst_row["Datetime"].strftime("%Y-%m-%d %H:%M:%S"), frst_row["Price"], frst_row["Datetime"].strftime("%Y-%m-%d %H:%M:%S"), invested_value, invested_value, volatility, open_prc, close_prc)  
-    if txn:
+        txn = stock_txn_for_date (symbol, name, trade_date, bought_price, bought_time, sold_price, sold_time, invested_value, sold_price*shares, volatility, open_prc, close_prc)
         txn_data.append(txn)
+    elif not bought_flag and not alredy_added_for_day:
+        #No entry added for day becuase the stock was not biught
+        #for tracking puepose add an entry with same bought and sold price.
+        txn = stock_txn_for_date (symbol, name, trade_date, frst_row["Price"], frst_row["Datetime"].strftime("%Y-%m-%d %H:%M:%S"), frst_row["Price"], frst_row["Datetime"].strftime("%Y-%m-%d %H:%M:%S"), invested_value, invested_value, volatility, open_prc, close_prc) 
+        txn_data.append(txn)
+
+    #if bought_flag:
+         #txn = stock_txn_for_date (symbol, name, trade_date, bought_price, bought_time, sold_price, sold_time, invested_value, sold_price*shares, volatility, open_prc, close_prc)
+    #else:   
+         #txn = stock_txn_for_date (symbol, name, trade_date, frst_row["Price"], frst_row["Datetime"].strftime("%Y-%m-%d %H:%M:%S"), frst_row["Price"], frst_row["Datetime"].strftime("%Y-%m-%d %H:%M:%S"), invested_value, invested_value, volatility, open_prc, close_prc)  
+    #if txn and not alredy_added_for_day:
+        #txn_data.append(txn)
 
 def get_thresholds(price):
     """
@@ -277,6 +289,54 @@ def daterange_days(num_days, end_date=None):
         yield end - timedelta(days=i)
 
 def get_txn_data(stocks, DailyInitialInvestment, NumberOfDays, symbol_data_map):
+
+    global txn_data
+    nyse = mcal.get_calendar("NYSE")
+
+    # daily invested per stock
+    invested_per_stock = DailyInitialInvestment / len(stocks)
+
+    RSI_MA_df = rd.build_RSI_MA20_data(stocks,NumberOfDays)
+    #print(stocks)
+
+    MAX_THREADS=10
+    cur_no_of_threads=0
+    # For each day in date range
+    print("Simulating daily trades...")
+    completed_days=0
+    for d in tqdm(list(daterange_days(NumberOfDays)), desc="Days"):
+        # trade for each symbol
+        #Build arguments for stock.
+        arg_list=[]
+        for index, sym_row in stocks.iterrows():
+            sym=sym_row["stock"]
+            wt = sym_row["weight"]
+            df_stock = symbol_data_map.get(sym, pd.DataFrame(columns=["Symbol","Name","Datetime","Price"]))
+
+            invested_per_stock=DailyInitialInvestment*wt/100
+            #print ("Trade Stock", sym, " for the date ", d, ".....")
+            thread_arguments=(nyse,df_stock,d,invested_per_stock, RSI_MA_df)
+            arg_list.append(thread_arguments)
+        #For each of the stocks, an entry is added to arg_list
+    
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            # Submit tasks and store the futures
+            futures = [executor.submit(trade_stock_for_date, *args) for args in arg_list]
+
+            # Process results as they complete
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    result = future.result()
+                    #print(f"Task completed: {result}")
+                except Exception as exc:
+                    print(f"Task generated an exception: {exc}")
+
+        completed_days = completed_days + 1
+        #if (completed_days%20) == 0:
+        #    print("Status: Completed for ", completed_days, " days.")
+    return txn_data
+
+def get_txn_data_old(stocks, DailyInitialInvestment, NumberOfDays, symbol_data_map):
 
     global txn_data
     nyse = mcal.get_calendar("NYSE")

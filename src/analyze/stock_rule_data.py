@@ -19,8 +19,8 @@ import stock_volatility as sv
 import buy_and_sell_patterns as bsp
 
 RSI_MA_df = pd.DataFrame()
-RSI_OVERSOLD_IDX=30
-RSI_OVERBOUGHT_IDX=70
+RSI_OVERSOLD_IDX=30 #35  #30
+RSI_OVERBOUGHT_IDX=70 #65 #70
 MA20_BACK_DAYS=20
 RSI_BACK_DAYS=14
 
@@ -204,7 +204,7 @@ def calculate_rvi_indicator(df, for_time, period=3):
     return retVal
 
 def trend_line(stk_data_for_date, prc, prc_time):
-    ROLLING_WINDOW=3 #2 #10 #Incresing reducing the gain
+    ROLLING_WINDOW=5 #5 #2 #10 #Incresing reducing the gain
     dt_obj = stk_data_for_date["Datetime"].dt.tz_convert('America/New_York')
  
     epoch_ns = dt_obj.values.astype(np.int64)
